@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>lab1_interfaces</name><version>1.0.0</version>
+  <description>Lab 1 target pose, actions and speed service interfaces.</description>
+  <maintainer email="iosamamedhat@gmail.com">Osama Medhat</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <build_depend>rosidl_default_generators</build_depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+  <member_of_group>rosidl_interface_packages</member_of_group>
+  <export><build_type>ament_cmake</build_type></export>
+</package>
