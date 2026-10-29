@@ -12,7 +12,7 @@ Finished <<< lab1_control [1.85s]
 Summary: 2 packages finished [13.4s]
 ```
 
-The final clean build had no package warnings. An earlier build had temporary filesystem clock-skew warnings; the fresh build above resolved them.
+The clean build completed without package warnings.
 
 ## Integration test output
 
@@ -38,11 +38,10 @@ Each square used side length 0.7. For each completed run, server logs showed exa
 (5.544, 5.544,  0.000)
 ```
 
-## Scope and remaining demonstration work
+## Verification scope
 
 - Both installed packages and the installed launch/config files were exercised.
 - The Qt GUI ran offscreen. Visual inspection of drawn lines, a visible desktop demonstration and screenshots have not been performed.
 - A rosbag recording/replay has not been performed; README includes the procedure.
-- No GitHub repository was created, pushed or submitted.
 - Tests used a fresh local Ubuntu workspace, not a teammate's machine.
-- Build/install/log output stays outside the project deliverable folder.
+- The public repository contains source packages, documentation and tests; build/install/log output is excluded.

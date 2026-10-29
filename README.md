@@ -17,16 +17,17 @@ Targets use turtlesim coordinates and radians. `/go_to_pose` implements the assi
 
 ## Build on Ubuntu 24.04 / ROS 2 Jazzy
 
-ROS 2 Jazzy Desktop and colcon must already be installed. Open Ubuntu (on this laptop: `wsl -d Ubuntu-24.04`). Keep the build workspace on Ubuntu's filesystem rather than the Google Drive mount.
+Requires Ubuntu 24.04 with ROS 2 Jazzy Desktop installed. On Windows with WSL, open the Ubuntu terminal first. Build in the Ubuntu filesystem.
 
 ```bash
 source /opt/ros/jazzy/setup.bash
 sudo apt update
-sudo apt install ros-jazzy-turtlesim python3-colcon-common-extensions
+sudo apt install git ros-jazzy-turtlesim python3-colcon-common-extensions
 mkdir -p ~/mec356_lab1_ws/src
+git clone https://github.com/Oselazab/Lab1_ROS2_Assignment-2-.git ~/mec356_lab1_ws/src/lab1
 ```
 
-Copy **lab1_interfaces** and **lab1_control** from this folder into `~/mec356_lab1_ws/src/`. If cloning a repository containing this folder's contents, clone it into `~/mec356_lab1_ws/src/lab1` instead. Then:
+Build and launch:
 
 ```bash
 cd ~/mec356_lab1_ws
@@ -35,7 +36,7 @@ source install/setup.bash
 ros2 launch lab1_control lab1.launch.py
 ```
 
-The launch starts turtlesim and all servers, with speeds loaded from `lab1_control/config/limits.yaml`. Keep it running. In **each new Ubuntu terminal**:
+The launch starts `/turtlesim` and `/lab1_server`, including both actions and both services. Speed defaults are loaded from `lab1_control/config/limits.yaml`. After editing this file, rebuild and relaunch to apply its startup values. Keep the launch terminal running. In **each new Ubuntu terminal**:
 
 ```bash
 source /opt/ros/jazzy/setup.bash
@@ -53,7 +54,7 @@ ros2 interface show lab1_interfaces/msg/TargetPose
 ros2 interface show lab1_interfaces/action/GoToPose
 ros2 interface show lab1_interfaces/action/DrawSquare
 ros2 interface show lab1_interfaces/srv/SetSpeedLimits
-ros2 topic echo /turtle1/pose
+ros2 topic echo /turtle1/pose --once
 ```
 
 The controller subscribes to `/turtle1/pose` (`turtlesim/msg/Pose`) and publishes `/turtle1/cmd_vel` (`geometry_msgs/msg/Twist`). Reset uses `/clear` (`std_srvs/srv/Empty`), `/turtle1/teleport_absolute` (`turtlesim/srv/TeleportAbsolute`) and `/turtle1/set_pen` (`turtlesim/srv/SetPen`).
@@ -94,7 +95,7 @@ ros2 param get /lab1_server max_angular_speed
 ros2 service call /set_speed_limits lab1_interfaces/srv/SetSpeedLimits "{max_linear_speed: -1.0, max_angular_speed: 1.0}"
 ```
 
-The last call must fail. Both limits must be positive finite doubles. The service updates both atomically, so an invalid request changes neither. Speeds are read every control cycle (50 Hz), including changes made while moving. Defaults are 2.0 units/s and 2.0 rad/s. Use decimal values in parameter commands.
+The last call should return `success: false`; neither speed limit should change. Both limits must be positive finite doubles. The service updates both atomically, so an invalid request changes neither. Speeds are read every control cycle (50 Hz), including changes made while moving. Defaults are 2.0 units/s and 2.0 rad/s. Use decimal values in parameter commands.
 
 ## Square action (R5)
 
@@ -104,25 +105,25 @@ ros2 action send_goal /draw_square lab1_interfaces/action/DrawSquare '{side_leng
 
 Repeat the command to verify a clean reset on the second run. Feedback reports the current side and completed sides. Side lengths must be finite and between 0.2 and approximately 5.2555 so the square stays inside the window. Each successful square logs exactly four accepted goToPose goals. An active square rejects other square requests and unrelated pose requests. Cancellation propagates to the current pose action and stops the turtle.
 
-## Design pattern bonus
+## Architecture
 
-`controller.py` separates the pure pose-control strategy from the ROS action/service orchestration in `server.py`. This Strategy-style separation makes the steering law replaceable without changing action transport and allows numerical testing without ROS. The controller has two explicit phases: turn/translate toward the point, then align final yaw. The square action composes the existing reset service and pose action rather than duplicating steering logic.
+`controller.py` contains the pure steering function, while `server.py` handles ROS actions, services and parameters. This separates the control calculation from ROS communication; it is not a full interchangeable Strategy-class implementation. The controller first turns toward the target and translates, then aligns the final yaw. The square action reuses the reset service and pose action rather than duplicating the steering logic.
 
-A reentrant callback group with an eight-thread executor allows subscriptions, service replies and action results to progress while orchestration waits. Locks guard action admission and reset ownership. All goals stop velocity output when they end.
+A reentrant callback group with an eight-thread executor allows subscriptions, service replies and action results to progress while orchestration waits. Locks guard action admission and reset ownership. The pose action publishes zero velocity when it ends; square cancellation forwards cancellation to the active pose goal.
 
 ## Automated integration checks
 
-With the launch running, execute this folder's `tests/verify_lab.py` in a sourced Ubuntu terminal:
+With the launch running and no other client controlling the turtle, execute the integration checks in a sourced Ubuntu terminal:
 
 ```bash
-python3 /path/to/Lab1/tests/verify_lab.py
+python3 ~/mec356_lab1_ws/src/lab1/tests/verify_lab.py
 ```
 
-The script tests repeated reset, speed validation, four motion directions and yaw, rejected goals, live speed caps, motion cancellation, two squares, square bounds, square cancellation and recovery. It moves the turtle and changes parameters; run it when no other client is controlling the turtle. See `TEST_RESULTS.md` for the actual local run.
+The script tests repeated reset, speed validation, four motion directions and yaw, rejected goals, live speed caps, motion cancellation, two squares, square bounds, square cancellation and recovery. It moves the turtle and changes parameters; run it when no other client is controlling the turtle. See [TEST_RESULTS.md](TEST_RESULTS.md) for the recorded local results and verification limits.
 
-## Optional rosbag bonus procedure
+## Optional rosbag recording and replay
 
-This procedure is provided for recording your own demonstration; no bag is claimed until it has been recorded and replayed.
+No rosbag is included in this repository. The following commands describe an optional recording and replay workflow; this workflow has not been verified in the recorded test run.
 
 In a sourced terminal, reset first and start recording:
 
@@ -153,9 +154,4 @@ ros2 service call /turtle1/set_pen turtlesim/srv/SetPen '{r: 255, g: 255, b: 255
 ros2 bag play lab1_square --topics /turtle1/cmd_vel
 ```
 
-Verify the path visually and capture evidence for the README. Velocity replay is open loop: timing can cause small differences.
-
-## Submission
-
-Upload the two package folders and README (optionally tests, test notes and verified bonus evidence). Exclude `build/`, `install/` and `log/`. Repository: https://github.com/Oselazab/Lab1_ROS2_Assignment-2-. One team member should submit the repository link through the assignment's Google Form.
-
+Velocity replay is open loop: the turtle must start at the same pose, and playback timing can cause small path differences. Compare the replay visually with the original run.
