@@ -1,0 +1,7 @@
+lab1_interfaces/TargetPose target
+---
+bool success
+string message
+---
+float64 distance_remaining
+float64 yaw_error
