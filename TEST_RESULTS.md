@@ -1,4 +1,8 @@
-# Local verification - 29 October 2026
+# Verification report
+
+**29 October 2026 · ROS 2 Jazzy · Ubuntu 24.04 / WSL 2**
+
+[← Back to README](README.md)
 
 Environment: Ubuntu 24.04 WSL 2, ROS 2 Jazzy, real turtlesim node with Qt offscreen, isolated ROS_DOMAIN_ID=76. This was an automated runtime test, not a mock simulator.
 
